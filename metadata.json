@@ -1,8 +1,0 @@
-{
-  "name": "SMIRT - Technician Intervention Portal",
-  "description": "A high-performance field service application for technicians to manage intervention reports, save drafts locally, and sync data to corporate systems with AI-powered verification.",
-  "requestFramePermissions": [
-    "camera",
-    "microphone"
-  ]
-}
