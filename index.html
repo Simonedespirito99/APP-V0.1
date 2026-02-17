@@ -6,8 +6,7 @@
     <title>SMIRT - Portale Tecnico</title>
     
     <!-- Mobile PWA Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="SMIRT">
     <meta name="theme-color" content="#0f1923">
     
@@ -17,6 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 
+    <!-- Tailwind CDN per prototipazione rapida (il warning in console è normale in modalità sviluppo) -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script>
         tailwind.config = {
@@ -71,7 +71,7 @@
 </head>
 <body class="font-sans antialiased">
     <div id="root" class="h-viewport"></div>
-    <!-- Vite gestirà la trasformazione di questo file in JS valido -->
-    <script type="module" src="/index.tsx"></script>
+    <!-- Usiamo il percorso relativo per supportare il deploy in sottocartelle -->
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>

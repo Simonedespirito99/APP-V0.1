@@ -2,10 +2,14 @@ import { InterventionReport } from "../types";
 
 /**
  * URL Google Apps Script per la sincronizzazione con il foglio Google.
+ * Assicurati che lo script sia pubblicato come Web App e accessibile a "Anyone".
  */
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYF2XxIGvTk2d3GDkw0bc0zULBscdDEwbwAddnAOnAxsqjddfA-fNHzb47IaYdFlbK/exec"; 
 
 export const geminiService = {
+  /**
+   * Verifica le credenziali tramite Google Apps Script
+   */
   verifyLogin: async (username: string, password: string): Promise<{success: boolean; message?: string; prefix?: string; username?: string}> => {
     try {
       const response = await fetch(GOOGLE_SCRIPT_URL, {
@@ -16,10 +20,14 @@ export const geminiService = {
       const data = await response.json();
       return data;
     } catch (error) {
-      return { success: false, message: "Script non raggiungibile." };
+      console.error("Login Error:", error);
+      return { success: false, message: "Server non raggiungibile." };
     }
   },
 
+  /**
+   * Recupera l'ultimo ID utilizzato dal tecnico dal cloud
+   */
   fetchUserStats: async (username: string): Promise<{lastId: string, lastNum: number} | null> => {
     try {
       const response = await fetch(GOOGLE_SCRIPT_URL, {
@@ -32,19 +40,20 @@ export const geminiService = {
       });
       const data = await response.json();
       
-      if (!data.success) {
-        return null;
-      }
+      if (!data.success) return null;
       return { 
         lastId: data.lastId || "N/A", 
         lastNum: parseInt(data.lastNum) || 0 
       };
     } catch (e) {
-      console.error("GAS Network Error (Stats):", e);
+      console.error("Fetch Stats Error:", e);
       return null;
     }
   },
 
+  /**
+   * Recupera gli ultimi interventi inviati
+   */
   fetchUserHistory: async (username: string): Promise<InterventionReport[]> => {
     try {
       const response = await fetch(GOOGLE_SCRIPT_URL, {
@@ -57,22 +66,16 @@ export const geminiService = {
         })
       });
       const data = await response.json();
-      
-      if (!data.success) {
-        return [];
-      }
-      return data.history || [];
+      return data.success ? (data.history || []) : [];
     } catch (e) {
-      console.error("GAS Network Error (History):", e);
+      console.error("Fetch History Error:", e);
       return [];
     }
   },
 
-  reviewReport: async (report: InterventionReport): Promise<string> => {
-    // Funzione intelligente rimossa come richiesto dall'utente
-    return "Controllo tecnico completato.";
-  },
-
+  /**
+   * Invia i dati al foglio Google
+   */
   syncToSheets: async (report: InterventionReport, technicianName: string): Promise<boolean> => {
     const allTechnicians = [technicianName, ...report.assistantTechnicians].filter(Boolean);
     const techniciansListString = `${allTechnicians.join(", ")} (Tot: ${allTechnicians.length})`;
@@ -91,8 +94,8 @@ export const geminiService = {
       colJ_SchedeComponenti: report.selectedUnits.sort((a,b) => a-b).join(", ") || "",
       colK_Descrizione: report.description || "",
       colL_Materiali: report.materials.map(m => `${m.qty}x ${m.name}`).join("\n") || "",
-      colM_FirmaTecnico: report.technicianSignature || "Assente",
-      colN_FirmaCliente: report.clientSignature || "Assente",
+      colM_FirmaTecnico: report.technicianSignature ? "Presente" : "Assente",
+      colN_FirmaCliente: report.clientSignature ? "Presente" : "Assente",
       colO_ID: report.id,
       colP_TecniciAssistenti: techniciansListString,
       colQ_Status: "OK",
@@ -108,7 +111,7 @@ export const geminiService = {
       const result = await response.json();
       return result.success === true;
     } catch (error) {
-      console.error("Sync Error:", error);
+      console.error("Sync to Sheets Error:", error);
       return false;
     }
   }
