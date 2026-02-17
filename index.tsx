@@ -4,12 +4,12 @@ import App from './App';
 
 const container = document.getElementById('root');
 if (!container) {
-  console.error('Root container "root" non trovato nel DOM.');
-} else {
-  const root = createRoot(container);
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
+  throw new Error('Root container "root" non trovato nel DOM.');
 }
+
+const root = createRoot(container);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
