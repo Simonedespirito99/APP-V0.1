@@ -6,39 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SMIRT - Portale Tecnico</title>
     
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#067ff9",
-                        "background-dark": "#0f1923",
-                        "surface-dark": "#16202c",
-                        "surface-darker": "#0a1118",
-                    },
-                    fontFamily: { "sans": ["Inter", "sans-serif"] },
-                    boxShadow: {
-                        'neon': '0 0 15px rgba(6, 127, 249, 0.3)',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body {
-            background-color: #0f1923;
-            color: white;
-            -webkit-tap-highlight-color: transparent;
-            overflow: hidden;
-        }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .h-viewport { height: 100vh; height: 100dvh; }
-    </style>
 <script type="importmap">
 {
   "imports": {
@@ -51,8 +22,8 @@
 }
 </script>
 </head>
-<body class="font-sans antialiased">
-    <div id="root" class="h-viewport"></div>
+<body>
+    <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>
 </html>
