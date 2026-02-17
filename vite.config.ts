@@ -10,6 +10,6 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    sourcemap: false // Disabilita i sourcemap per evitare riferimenti a eval in produzione
+    sourcemap: false
   }
 });
