@@ -1,0 +1,10 @@
+
+{
+  "appId": "com.smirt.app",
+  "appName": "SMIRT",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
