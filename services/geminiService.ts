@@ -1,13 +1,7 @@
-
-import { GoogleGenAI } from "@google/genai";
 import { InterventionReport } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 /**
- * URL AGGIORNATO: Basato sulla nuova distribuzione fornita (v3/v4).
- * Se ricevi ancora "Azione non valida", controlla che nello script GAS 
- * la stringa 'getUserStats' sia scritta esattamente così (case-sensitive).
+ * URL Google Apps Script per la sincronizzazione con il foglio Google.
  */
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYF2XxIGvTk2d3GDkw0bc0zULBscdDEwbwAddnAOnAxsqjddfA-fNHzb47IaYdFlbK/exec"; 
 
@@ -28,7 +22,6 @@ export const geminiService = {
 
   fetchUserStats: async (username: string): Promise<{lastId: string, lastNum: number} | null> => {
     try {
-      console.log("GAS Sync: Richiedo Stats per", username);
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -38,10 +31,8 @@ export const geminiService = {
         })
       });
       const data = await response.json();
-      console.log("GAS Stats Response:", data);
       
       if (!data.success) {
-        console.error("GAS Server Error (Stats):", data.message || "Risposta negativa");
         return null;
       }
       return { 
@@ -56,7 +47,6 @@ export const geminiService = {
 
   fetchUserHistory: async (username: string): Promise<InterventionReport[]> => {
     try {
-      console.log("GAS Sync: Richiedo Storico per", username);
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -67,10 +57,8 @@ export const geminiService = {
         })
       });
       const data = await response.json();
-      console.log("GAS History Response:", data);
       
       if (!data.success) {
-        console.error("GAS Server Error (History):", data.message || "Risposta negativa");
         return [];
       }
       return data.history || [];
@@ -81,17 +69,8 @@ export const geminiService = {
   },
 
   reviewReport: async (report: InterventionReport): Promise<string> => {
-    if (!process.env.API_KEY) return "AI Offline.";
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Analizza brevemente la coerenza tecnica: ${report.description}. Massimo 10 parole.`,
-        config: { temperature: 0.4 }
-      });
-      return response.text || "Analisi completata.";
-    } catch (error) {
-      return "Controllo tecnico superato.";
-    }
+    // Funzione intelligente rimossa come richiesto dall'utente
+    return "Controllo tecnico completato.";
   },
 
   syncToSheets: async (report: InterventionReport, technicianName: string): Promise<boolean> => {

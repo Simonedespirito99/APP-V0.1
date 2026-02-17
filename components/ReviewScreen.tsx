@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { InterventionReport, UserProfile } from '../types';
 import { geminiService } from '../services/geminiService';
 import { storageService } from '../services/storageService';
@@ -13,13 +12,8 @@ interface Props {
 }
 
 const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveDraft }) => {
-  const [aiReview, setAiReview] = useState('Analisi rapporto in corso...');
   const [isSyncing, setIsSyncing] = useState(false);
   const user: UserProfile = storageService.getProfile();
-
-  useEffect(() => {
-    geminiService.reviewReport(report).then(setAiReview);
-  }, [report]);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -48,14 +42,6 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 py-6 hide-scrollbar space-y-6">
-        <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 flex gap-3 items-start">
-          <span className="material-icons-round text-primary text-xl">psychology</span>
-          <div>
-            <h4 className="text-[10px] font-bold text-primary uppercase mb-1 tracking-widest">AI Audit</h4>
-            <p className="text-sm text-slate-300 leading-tight">{aiReview}</p>
-          </div>
-        </div>
-
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <span className="material-icons-round text-primary text-sm">domain</span>
@@ -63,12 +49,12 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
           </div>
           <div className="bg-surface-dark border border-slate-800 rounded-xl p-4 space-y-4">
             <div className="flex justify-between">
-              <span className="text-xs text-slate-500">Responsabile (Col. B)</span>
+              <span className="text-xs text-slate-500">Responsabile</span>
               <span className="text-xs font-bold text-primary">{user.name}</span>
             </div>
             {report.isLinkedToPrevious && (
               <div className="flex justify-between items-center bg-primary/5 -mx-2 px-2 py-1 rounded">
-                <span className="text-[10px] font-bold text-primary uppercase">Riferimento (Col. R)</span>
+                <span className="text-[10px] font-bold text-primary uppercase">Riferimento</span>
                 <span className="text-xs font-mono font-black text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
                   {report.previousActivityId || 'NON SPECIFICATO'}
                 </span>
@@ -76,11 +62,11 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
             )}
             <div className="h-px bg-slate-800"></div>
             <div className="flex justify-between">
-              <span className="text-xs text-slate-500">Cliente (Col. C)</span>
+              <span className="text-xs text-slate-500">Cliente</span>
               <span className="text-xs font-bold">{report.clientName || '-'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-xs text-slate-500">Luogo (Col. D)</span>
+              <span className="text-xs text-slate-500">Luogo</span>
               <span className="text-xs font-bold">{report.locationId || '-'}</span>
             </div>
           </div>
@@ -89,17 +75,17 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <span className="material-icons-round text-primary text-sm">group</span>
-            <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Lista Tecnici (Col. P)</h2>
+            <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Team Tecnico</h2>
           </div>
           <div className="bg-surface-dark border border-slate-800 rounded-xl p-4">
              <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Tecnico Mittente</span>
+                  <span className="text-slate-400">Responsabile</span>
                   <span className="font-bold text-primary">{user.name}</span>
                 </div>
                 {report.assistantTechnicians.map((t, idx) => (
                   <div key={idx} className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Tecnico Assistente</span>
+                    <span className="text-slate-400">Assistente</span>
                     <span className="font-bold">{t}</span>
                   </div>
                 ))}
@@ -120,13 +106,13 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
             <div>
               <p className="text-[10px] text-slate-500 uppercase mb-2">Attività</p>
               <div className="flex flex-wrap gap-1">
-                {report.selectedTasks.map(t => (
+                {report.selectedTasks.length > 0 ? report.selectedTasks.map(t => (
                   <span key={t} className="text-[10px] bg-slate-800 px-2 py-1 rounded border border-slate-700">{t}</span>
-                ))}
+                )) : <span className="text-[10px] text-slate-600">Nessuna attività selezionata</span>}
               </div>
             </div>
             <div>
-              <p className="text-[10px] text-slate-500 uppercase mb-2">Componenti</p>
+              <p className="text-[10px] text-slate-500 uppercase mb-2">Componenti/Unità</p>
               <p className="text-xs font-mono text-primary font-bold">
                 {report.selectedUnits.length > 0 ? report.selectedUnits.sort((a,b)=>a-b).join(", ") : "Nessuna"}
               </p>
@@ -137,7 +123,7 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
         <div className="space-y-3 pb-10">
           <div className="flex items-center gap-2 px-1">
             <span className="material-icons-round text-primary text-sm">inventory_2</span>
-            <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Materiali (Col. L)</h2>
+            <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Materiali Utilizzati</h2>
           </div>
           <div className="bg-surface-dark border border-slate-800 rounded-xl overflow-hidden">
             <table className="w-full text-left">
@@ -148,12 +134,16 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
                 </tr>
               </thead>
               <tbody className="text-xs divide-y divide-slate-800">
-                {report.materials.map(m => (
+                {report.materials.length > 0 ? report.materials.map(m => (
                   <tr key={m.id}>
-                    <td className="px-4 py-3">{m.name || 'Articolo'}</td>
+                    <td className="px-4 py-3">{m.name || 'Articolo generico'}</td>
                     <td className="px-4 py-3 text-right font-bold text-primary">{m.qty}</td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={2} className="px-4 py-4 text-center text-slate-600 italic">Nessun materiale registrato</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -169,7 +159,7 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
           {isSyncing ? (
             <>
               <span className="material-icons-round animate-spin">sync</span>
-              INVIO...
+              Sincronizzazione...
             </>
           ) : (
             <>
