@@ -34,7 +34,7 @@ const Dashboard: React.FC<Props> = ({ user, reports, onNewReport, isSyncing, rem
     <div className="h-full flex flex-col p-6 pb-28 overflow-y-auto hide-scrollbar relative">
       <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
       
-      <header className="mb-12 pt-4 flex justify-between items-start">
+      <header className="mb-12 pt-10 flex justify-between items-start">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 mb-4 opacity-80">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-800 flex items-center justify-center shadow-neon">

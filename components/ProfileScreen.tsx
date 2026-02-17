@@ -102,7 +102,7 @@ const ProfileScreen: React.FC<Props> = ({ user, onUpdate, onLogout }) => {
 
   return (
     <div className="h-full flex flex-col bg-background-dark">
-      <header className="px-6 py-4 flex items-center border-b border-slate-800 sticky top-0 bg-background-dark/95 z-10 backdrop-blur-sm">
+      <header className="px-6 py-4 flex items-center justify-between border-b border-slate-800 sticky top-0 bg-background-dark/95 z-10 backdrop-blur-sm">
         <h1 className="text-lg font-bold">Profilo e Impostazioni</h1>
       </header>
 

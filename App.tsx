@@ -29,22 +29,17 @@ const App: React.FC = () => {
     setIsSyncing(true);
     setSyncError(null);
     try {
-      // 1. Stats
       const stats = await geminiService.fetchUserStats(username);
       if (stats) {
         storageService.syncCounter(stats.lastNum);
         setRemoteLastId(stats.lastId);
-      } else {
-        setSyncError("Script non aggiornato o azione negata. Crea una Nuova Distribuzione.");
       }
-
-      // 2. History
       const history = await geminiService.fetchUserHistory(username);
       if (history && history.length > 0) {
         storageService.importSyncedReports(history);
       }
     } catch (e) {
-      setSyncError("Errore critico di connessione.");
+      setSyncError("Errore di connessione.");
     } finally {
       setReports(storageService.getReports());
       setIsSyncing(false);
@@ -54,7 +49,6 @@ const App: React.FC = () => {
   useEffect(() => {
     const localReports = storageService.getReports();
     setReports(localReports);
-    
     if (currentUser.name) {
       setIsAuthenticated(true);
       setRoute(AppRoute.DASHBOARD);
@@ -63,11 +57,7 @@ const App: React.FC = () => {
   }, []);
 
   const handleLoginSuccess = async (userData: { name: string; prefix: string }) => {
-    const updatedProfile = { 
-      ...currentUser, 
-      name: userData.name, 
-      prefix: userData.prefix 
-    };
+    const updatedProfile = { ...currentUser, name: userData.name, prefix: userData.prefix };
     setCurrentUser(updatedProfile);
     storageService.saveProfile(updatedProfile);
     setIsAuthenticated(true);
@@ -75,21 +65,10 @@ const App: React.FC = () => {
     await syncUserData(userData.name);
   };
 
-  const refreshReports = useCallback(() => {
-    setReports(storageService.getReports());
-  }, []);
-
-  const handleManualRefresh = () => {
-    if (currentUser.name) {
-      syncUserData(currentUser.name);
-    }
-  };
-
   const startNewReport = () => {
     const draftCount = reports.filter(r => r.status === 'draft').length;
     const projectedId = storageService.getProjectedId(draftCount + 1);
-
-    const newReport: InterventionReport = {
+    setActiveReport({
       id: projectedId,
       clientId: '',
       clientName: '',
@@ -108,104 +87,21 @@ const App: React.FC = () => {
       technicianSignature: currentUser.permanentSignature,
       status: 'draft',
       timestamp: Date.now()
-    };
-    setActiveReport(newReport);
+    });
     setRoute(AppRoute.NEW_REPORT);
-  };
-
-  const handleSaveDraft = (report: InterventionReport) => {
-    storageService.saveReport(report);
-    refreshReports();
-    setActiveReport(null);
-    setRoute(AppRoute.DRAFTS);
-  };
-
-  const handleFinalSync = (report: InterventionReport) => {
-    storageService.finalizeReport(report);
-    refreshReports();
-    setActiveReport(null);
-    setRoute(AppRoute.DRAFTS);
   };
 
   const renderScreen = () => {
     switch (route) {
-      case AppRoute.LOGIN:
-        return <Login onLogin={handleLoginSuccess} />;
-      case AppRoute.DASHBOARD:
-        return <Dashboard 
-          user={currentUser} 
-          reports={reports}
-          onNewReport={startNewReport} 
-          isSyncing={isSyncing} 
-          remoteLastId={remoteLastId}
-          onRefresh={handleManualRefresh}
-          syncError={syncError}
-        />;
-      case AppRoute.DRAFTS:
-        return <DraftsList 
-          reports={reports}
-          onEdit={(report) => {
-            setActiveReport(report);
-            setRoute(AppRoute.NEW_REPORT);
-          }} 
-        />;
-      case AppRoute.NOTIFICATIONS:
-        return <NotificationsScreen notifications={notifications} onBack={() => setRoute(AppRoute.DASHBOARD)} />;
-      case AppRoute.NEW_REPORT:
-        return activeReport ? (
-          <ReportForm 
-            report={activeReport} 
-            onSave={handleSaveDraft}
-            onContinue={(updated) => {
-              setActiveReport(updated);
-              setRoute(AppRoute.SIGNATURE);
-            }}
-            onCancel={() => {
-              setActiveReport(null);
-              setRoute(AppRoute.DASHBOARD);
-            }}
-          />
-        ) : null;
-      case AppRoute.SIGNATURE:
-        return activeReport ? (
-          <SignatureScreen 
-            report={activeReport} 
-            user={currentUser}
-            onBack={() => setRoute(AppRoute.NEW_REPORT)}
-            onComplete={(updated) => {
-              setActiveReport(updated);
-              setRoute(AppRoute.REVIEW);
-            }}
-            onSaveDraft={handleSaveDraft}
-          />
-        ) : null;
-      case AppRoute.REVIEW:
-        return activeReport ? (
-          <ReviewScreen 
-            report={activeReport} 
-            onSync={handleFinalSync}
-            onEdit={() => setRoute(AppRoute.NEW_REPORT)}
-            onBack={() => setRoute(AppRoute.SIGNATURE)}
-            onSaveDraft={handleSaveDraft}
-          />
-        ) : null;
-      case AppRoute.PROFILE:
-        return <ProfileScreen 
-          user={currentUser} 
-          onUpdate={(u) => {
-            setCurrentUser(u);
-            storageService.saveProfile(u);
-          }}
-          onLogout={() => {
-            storageService.logout();
-            setIsAuthenticated(false);
-            setReports([]);
-            setRemoteLastId(null);
-            setRoute(AppRoute.LOGIN);
-          }}
-        />;
-      default:
-        return <Dashboard user={currentUser} reports={reports} onNewReport={startNewReport} />;
+      case AppRoute.LOGIN: return <Login onLogin={handleLoginSuccess} />;
+      case AppRoute.DASHBOARD: return <Dashboard user={currentUser} reports={reports} onNewReport={startNewReport} isSyncing={isSyncing} remoteLastId={remoteLastId} onRefresh={() => syncUserData(currentUser.name)} syncError={syncError} />;
+      case AppRoute.DRAFTS: return <DraftsList reports={reports} onEdit={(r) => { setActiveReport(r); setRoute(AppRoute.NEW_REPORT); }} />;
+      case AppRoute.NOTIFICATIONS: return <NotificationsScreen notifications={notifications} onBack={() => setRoute(AppRoute.DASHBOARD)} />;
+      case AppRoute.NEW_REPORT: return activeReport ? <ReportForm report={activeReport} onSave={(r) => { storageService.saveReport(r); setReports(storageService.getReports()); setRoute(AppRoute.DRAFTS); }} onContinue={(r) => { setActiveReport(r); setRoute(AppRoute.SIGNATURE); }} onCancel={() => setRoute(AppRoute.DASHBOARD)} /> : null;
+      case AppRoute.SIGNATURE: return activeReport ? <SignatureScreen report={activeReport} user={currentUser} onBack={() => setRoute(AppRoute.NEW_REPORT)} onComplete={(r) => { setActiveReport(r); setRoute(AppRoute.REVIEW); }} onSaveDraft={(r) => { storageService.saveReport(r); setReports(storageService.getReports()); setRoute(AppRoute.DRAFTS); }} /> : null;
+      case AppRoute.REVIEW: return activeReport ? <ReviewScreen report={activeReport} onSync={(r) => { storageService.finalizeReport(r); setReports(storageService.getReports()); setRoute(AppRoute.DRAFTS); }} onEdit={() => setRoute(AppRoute.NEW_REPORT)} onBack={() => setRoute(AppRoute.SIGNATURE)} onSaveDraft={(r) => { storageService.saveReport(r); setReports(storageService.getReports()); setRoute(AppRoute.DRAFTS); }} /> : null;
+      case AppRoute.PROFILE: return <ProfileScreen user={currentUser} onUpdate={(u) => { setCurrentUser(u); storageService.saveProfile(u); }} onLogout={() => { storageService.logout(); setIsAuthenticated(false); setRoute(AppRoute.LOGIN); }} />;
+      default: return <Dashboard user={currentUser} reports={reports} onNewReport={startNewReport} />;
     }
   };
 
@@ -214,14 +110,8 @@ const App: React.FC = () => {
       <div className="flex-1 overflow-hidden relative">
         {renderScreen()}
       </div>
-      
-      {isAuthenticated && route !== AppRoute.LOGIN && route !== AppRoute.NEW_REPORT && route !== AppRoute.SIGNATURE && route !== AppRoute.REVIEW && (
-        <BottomNav 
-          currentRoute={route} 
-          onNavigate={setRoute} 
-          onNewReport={startNewReport}
-          hasNotifications={notifications.length > 0}
-        />
+      {isAuthenticated && route !== AppRoute.LOGIN && !['new_report', 'signature', 'review'].includes(route) && (
+        <BottomNav currentRoute={route} onNavigate={setRoute} onNewReport={startNewReport} hasNotifications={notifications.length > 0} />
       )}
     </div>
   );

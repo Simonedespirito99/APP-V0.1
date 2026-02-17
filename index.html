@@ -4,14 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SMIRT - Technician Portal</title>
-    
-    <!-- PWA / Mobile Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="SMIRT">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f1923">
+    <title>SMIRT - Portale Tecnico</title>
     
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -23,47 +16,28 @@
                 extend: {
                     colors: {
                         "primary": "#067ff9",
-                        "background-light": "#f5f7f8",
                         "background-dark": "#0f1923",
                         "surface-dark": "#16202c",
                         "surface-darker": "#0a1118",
                     },
-                    fontFamily: {
-                        "sans": ["Inter", "sans-serif"]
-                    },
+                    fontFamily: { "sans": ["Inter", "sans-serif"] },
                     boxShadow: {
                         'neon': '0 0 15px rgba(6, 127, 249, 0.3)',
-                        'neon-strong': '0 0 25px rgba(6, 127, 249, 0.5)',
                     }
                 }
             }
         }
     </script>
     <style>
-        :root {
-            --sat: env(safe-area-inset-top);
-            --sar: env(safe-area-inset-right);
-            --sab: env(safe-area-inset-bottom);
-            --sal: env(safe-area-inset-left);
-        }
-
         body {
             background-color: #0f1923;
             color: white;
             -webkit-tap-highlight-color: transparent;
-            width: 100%;
-            height: 100%;
             overflow: hidden;
-            touch-action: manipulation;
         }
-
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        .h-viewport {
-            height: 100vh;
-            height: 100dvh;
-        }
+        .h-viewport { height: 100vh; height: 100dvh; }
     </style>
 <script type="importmap">
 {
@@ -78,16 +52,5 @@
 </head>
 <body class="font-sans antialiased">
     <div id="root" class="h-viewport"></div>
-    <script>
-      // Registrazione Service Worker per abilitare l'installazione su Home Screen
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          const swCode = "self.addEventListener('fetch', (event) => { event.respondWith(fetch(event.request)); });";
-          const blob = new Blob([swCode], { type: 'text/javascript' });
-          const url = URL.createObjectURL(blob);
-          navigator.serviceWorker.register(url).catch(() => {});
-        });
-      }
-    </script>
 </body>
 </html>
