@@ -1,20 +1,23 @@
 
-# 🌐 Come pubblicare l'app SMIRT sul Web
+# 🌐 Pubblicazione Web SMIRT (Vite Edition)
 
-Se vuoi un link permanente (es. `smirt-interventi.vercel.app`) da dare ai tuoi tecnici senza che debbano entrare in AI Studio, segui questa procedura gratuita:
+Grazie alla nuova configurazione con **Vite**, l'errore "No Output Directory" su Vercel è risolto.
 
-## Opzione A: Vercel (La più veloce)
-1. Vai su [Vercel.com](https://vercel.com) e crea un account gratuito.
-2. Scarica i file di questo progetto sul tuo PC.
-3. Installa la "Vercel CLI" o semplicemente trascina la cartella sulla loro dashboard di "Deploy".
-4. L'app sarà online in 30 secondi con un link sicuro (HTTPS).
+## Come pubblicare su Vercel
+1. Scarica i file sul tuo PC.
+2. Se usi la Dashboard di Vercel:
+   - Carica la cartella.
+   - Vercel leggerà automaticamente il file `vercel.json`.
+   - La "Build Command" sarà `npm run build`.
+   - La "Output Directory" sarà `dist`.
+3. Clicca su **Deploy**.
 
-## Opzione B: Netlify
-1. Vai su [Netlify.com](https://netlify.com).
-2. Trascina la cartella del progetto nel riquadro "Drag and drop your site folder".
-3. Fine. Il sito è online.
+L'app sarà ora disponibile su un link HTTPS velocissimo e sicuro.
 
-## Perché farlo?
-- **Link Fisso**: Il link non cambia mai.
-- **Accesso Diretto**: I tecnici aprono il link dal browser del telefono e l'app è subito pronta.
-- **Nessun Errore**: Non essendo dentro un "iframe" di Google, tutte le funzioni (fotocamera, salvataggio locale) funzionano perfettamente.
+## Sviluppo Locale
+Se vuoi testare l'app sul tuo PC prima di caricarla:
+```bash
+npm install
+npm run dev
+```
+Apri `http://localhost:3000` nel browser.

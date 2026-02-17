@@ -1,21 +1,29 @@
 
 {
   "name": "smirt-app",
+  "private": true,
   "version": "1.0.0",
-  "description": "SMIRT Technician Portal",
-  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "android:sync": "npm run build && npx cap copy android"
+  },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
     "@capacitor/core": "^6.0.0",
     "@capacitor/ios": "^6.0.0",
     "@google/genai": "^1.41.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.0.0"
-  },
-  "scripts": {
-    "build": "echo 'Pronto per la compilazione mobile'"
+    "@capacitor/cli": "^6.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.0"
   }
 }
