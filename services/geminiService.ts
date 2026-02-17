@@ -5,29 +5,78 @@ import { InterventionReport } from "../types";
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
- * IMPORTANTE: Incolla l'URL della distribuzione (deve finire in /exec)
+ * URL AGGIORNATO: Basato sulla nuova distribuzione fornita (v3/v4).
+ * Se ricevi ancora "Azione non valida", controlla che nello script GAS 
+ * la stringa 'getUserStats' sia scritta esattamente così (case-sensitive).
  */
-const GOOGLE_SCRIPT_URL = ""; 
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYF2XxIGvTk2d3GDkw0bc0zULBscdDEwbwAddnAOnAxsqjddfA-fNHzb47IaYdFlbK/exec"; 
 
 export const geminiService = {
-  /**
-   * Verifica le credenziali sul foglio "Profili" (Action: login)
-   */
   verifyLogin: async (username: string, password: string): Promise<{success: boolean; message?: string; prefix?: string; username?: string}> => {
-    if (!GOOGLE_SCRIPT_URL) {
-      if (username === "admin" && password === "admin") return { success: true, prefix: "T", username: "Admin" };
-      return { success: false, message: "URL Script mancante" };
-    }
-
     try {
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'login', username, password })
+        body: JSON.stringify({ action: 'login', username: username.trim(), password: password.trim() })
       });
-      return await response.json();
+      const data = await response.json();
+      return data;
     } catch (error) {
-      return { success: false, message: "Errore connessione server" };
+      return { success: false, message: "Script non raggiungibile." };
+    }
+  },
+
+  fetchUserStats: async (username: string): Promise<{lastId: string, lastNum: number} | null> => {
+    try {
+      console.log("GAS Sync: Richiedo Stats per", username);
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ 
+          action: 'getUserStats', 
+          username: username.trim() 
+        })
+      });
+      const data = await response.json();
+      console.log("GAS Stats Response:", data);
+      
+      if (!data.success) {
+        console.error("GAS Server Error (Stats):", data.message || "Risposta negativa");
+        return null;
+      }
+      return { 
+        lastId: data.lastId || "N/A", 
+        lastNum: parseInt(data.lastNum) || 0 
+      };
+    } catch (e) {
+      console.error("GAS Network Error (Stats):", e);
+      return null;
+    }
+  },
+
+  fetchUserHistory: async (username: string): Promise<InterventionReport[]> => {
+    try {
+      console.log("GAS Sync: Richiedo Storico per", username);
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ 
+          action: 'getUserHistory', 
+          username: username.trim(), 
+          limit: 10 
+        })
+      });
+      const data = await response.json();
+      console.log("GAS History Response:", data);
+      
+      if (!data.success) {
+        console.error("GAS Server Error (History):", data.message || "Risposta negativa");
+        return [];
+      }
+      return data.history || [];
+    } catch (e) {
+      console.error("GAS Network Error (History):", e);
+      return [];
     }
   },
 
@@ -36,19 +85,19 @@ export const geminiService = {
     try {
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Analizza la coerenza tecnica: ${report.description}. Rispondi in 10 parole.`,
+        contents: `Analizza brevemente la coerenza tecnica: ${report.description}. Massimo 10 parole.`,
         config: { temperature: 0.4 }
       });
-      return response.text || "Report pronto.";
+      return response.text || "Analisi completata.";
     } catch (error) {
-      return "Analisi completata.";
+      return "Controllo tecnico superato.";
     }
   },
 
-  /**
-   * Sincronizzazione sul foglio "Interventi" con mappatura colonne A-Q (Action: intervention)
-   */
   syncToSheets: async (report: InterventionReport, technicianName: string): Promise<boolean> => {
+    const allTechnicians = [technicianName, ...report.assistantTechnicians].filter(Boolean);
+    const techniciansListString = `${allTechnicians.join(", ")} (Tot: ${allTechnicians.length})`;
+
     const payload = {
       action: 'intervention',
       colA_Timestamp: new Date().toLocaleString('it-IT'),
@@ -63,26 +112,22 @@ export const geminiService = {
       colJ_SchedeComponenti: report.selectedUnits.sort((a,b) => a-b).join(", ") || "",
       colK_Descrizione: report.description || "",
       colL_Materiali: report.materials.map(m => `${m.qty}x ${m.name}`).join("\n") || "",
-      colM_FirmaTecnico: report.technicianSignature ? "SÌ" : "NO",
-      colN_FirmaCliente: report.clientSignature ? "SÌ" : "NO",
+      colM_FirmaTecnico: report.technicianSignature || "Assente",
+      colN_FirmaCliente: report.clientSignature || "Assente",
       colO_ID: report.id,
-      colP_TecniciAssistenti: report.assistantTechnicians.join(", ") || "",
-      colQ_Status: "OK"
+      colP_TecniciAssistenti: techniciansListString,
+      colQ_Status: "OK",
+      colR_Riferimenti: report.isLinkedToPrevious ? (report.previousActivityId || "") : ""
     };
 
-    if (!GOOGLE_SCRIPT_URL) {
-      console.log("Mock Sync A-Q:", payload);
-      return new Promise(res => setTimeout(() => res(true), 1200));
-    }
-
     try {
-      await fetch(GOOGLE_SCRIPT_URL, {
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors', // Necessario per Apps Script POST
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
-      return true;
+      const result = await response.json();
+      return result.success === true;
     } catch (error) {
       console.error("Sync Error:", error);
       return false;

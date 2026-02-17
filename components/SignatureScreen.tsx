@@ -1,5 +1,5 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { InterventionReport, UserProfile } from '../types';
 
 interface Props {
@@ -16,6 +16,26 @@ const SignatureScreen: React.FC<Props> = ({ report, user, onBack, onComplete, on
   const [isEmpty, setIsEmpty] = useState(true);
   const [assistantTechnicians, setAssistantTechnicians] = useState<string[]>(report.assistantTechnicians || []);
   const [newAssistant, setNewAssistant] = useState('');
+
+  // iOS Safari: Preveniamo lo scrolling durante il disegno
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const preventDefault = (e: TouchEvent) => {
+      if (e.target === canvas) {
+        e.preventDefault();
+      }
+    };
+
+    canvas.addEventListener('touchstart', preventDefault as any, { passive: false });
+    canvas.addEventListener('touchmove', preventDefault as any, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', preventDefault as any);
+      canvas.removeEventListener('touchmove', preventDefault as any);
+    };
+  }, []);
 
   const getPos = (e: React.TouchEvent | React.MouseEvent) => {
     const canvas = canvasRef.current;
@@ -129,6 +149,7 @@ const SignatureScreen: React.FC<Props> = ({ report, user, onBack, onComplete, on
               onTouchStart={startDrawing}
               onTouchMove={draw}
               onTouchEnd={endDrawing}
+              style={{ touchAction: 'none' }} // Cruciale per iOS
               className="w-full h-full"
             />
           </div>

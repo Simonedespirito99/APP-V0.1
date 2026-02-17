@@ -23,7 +23,6 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
 
   const handleSync = async () => {
     setIsSyncing(true);
-    // Passiamo anche il nome utente per la colonna B del foglio
     const success = await geminiService.syncToSheets(report, user.name);
     if (success) {
       onSync({ ...report, status: 'synced', timestamp: Date.now() });
@@ -32,6 +31,8 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
       alert("Invio fallito. Controlla la connessione.");
     }
   };
+
+  const allTechs = [user.name, ...report.assistantTechnicians].filter(Boolean);
 
   return (
     <div className="h-full flex flex-col bg-background-dark overflow-hidden">
@@ -65,6 +66,14 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
               <span className="text-xs text-slate-500">Responsabile (Col. B)</span>
               <span className="text-xs font-bold text-primary">{user.name}</span>
             </div>
+            {report.isLinkedToPrevious && (
+              <div className="flex justify-between items-center bg-primary/5 -mx-2 px-2 py-1 rounded">
+                <span className="text-[10px] font-bold text-primary uppercase">Riferimento (Col. R)</span>
+                <span className="text-xs font-mono font-black text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                  {report.previousActivityId || 'NON SPECIFICATO'}
+                </span>
+              </div>
+            )}
             <div className="h-px bg-slate-800"></div>
             <div className="flex justify-between">
               <span className="text-xs text-slate-500">Cliente (Col. C)</span>
@@ -80,20 +89,24 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <span className="material-icons-round text-primary text-sm">group</span>
-            <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Personale Addizionale (Col. P)</h2>
+            <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Lista Tecnici (Col. P)</h2>
           </div>
           <div className="bg-surface-dark border border-slate-800 rounded-xl p-4">
              <div className="flex flex-col gap-2">
-                {report.assistantTechnicians && report.assistantTechnicians.length > 0 ? (
-                  report.assistantTechnicians.map((t, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">Tecnico Assistente</span>
-                      <span className="font-bold">{t}</span>
-                    </div>
-                  ))
-                ) : (
-                  <span className="text-xs text-slate-500 italic">Nessun tecnico aggiuntivo</span>
-                )}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Tecnico Mittente</span>
+                  <span className="font-bold text-primary">{user.name}</span>
+                </div>
+                {report.assistantTechnicians.map((t, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Tecnico Assistente</span>
+                    <span className="font-bold">{t}</span>
+                  </div>
+                ))}
+                <div className="mt-2 pt-2 border-t border-slate-800 flex justify-between">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase">Totale Operatori</span>
+                  <span className="text-xs font-black text-white">{allTechs.length}</span>
+                </div>
              </div>
           </div>
         </div>
@@ -101,11 +114,11 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <span className="material-icons-round text-primary text-sm">engineering</span>
-            <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Dettagli Intervento (Col. I, J, K)</h2>
+            <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Dettagli Intervento</h2>
           </div>
           <div className="bg-surface-dark border border-slate-800 rounded-xl p-4 space-y-4">
             <div>
-              <p className="text-[10px] text-slate-500 uppercase mb-2">Task Selezionati (Col. I)</p>
+              <p className="text-[10px] text-slate-500 uppercase mb-2">Attività</p>
               <div className="flex flex-wrap gap-1">
                 {report.selectedTasks.map(t => (
                   <span key={t} className="text-[10px] bg-slate-800 px-2 py-1 rounded border border-slate-700">{t}</span>
@@ -113,14 +126,10 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
               </div>
             </div>
             <div>
-              <p className="text-[10px] text-slate-500 uppercase mb-2">Schede/Componenti (Col. J)</p>
+              <p className="text-[10px] text-slate-500 uppercase mb-2">Componenti</p>
               <p className="text-xs font-mono text-primary font-bold">
                 {report.selectedUnits.length > 0 ? report.selectedUnits.sort((a,b)=>a-b).join(", ") : "Nessuna"}
               </p>
-            </div>
-            <div className="pt-2">
-              <p className="text-[10px] text-slate-500 uppercase mb-2">Note (Col. K)</p>
-              <p className="text-xs leading-relaxed text-slate-300">{report.description || 'Nessuna descrizione.'}</p>
             </div>
           </div>
         </div>
@@ -135,19 +144,16 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
               <thead className="bg-slate-800 text-[10px] text-slate-400 uppercase font-bold">
                 <tr>
                   <th className="px-4 py-2">Articolo</th>
-                  <th className="px-4 py-2 text-right">Quantità</th>
+                  <th className="px-4 py-2 text-right">Q.tà</th>
                 </tr>
               </thead>
               <tbody className="text-xs divide-y divide-slate-800">
                 {report.materials.map(m => (
                   <tr key={m.id}>
-                    <td className="px-4 py-3">{m.name || 'Misc'}</td>
+                    <td className="px-4 py-3">{m.name || 'Articolo'}</td>
                     <td className="px-4 py-3 text-right font-bold text-primary">{m.qty}</td>
                   </tr>
                 ))}
-                {report.materials.length === 0 && (
-                  <tr><td colSpan={2} className="px-4 py-3 text-center text-slate-600 italic">Nessun materiale</td></tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -163,20 +169,14 @@ const ReviewScreen: React.FC<Props> = ({ report, onSync, onEdit, onBack, onSaveD
           {isSyncing ? (
             <>
               <span className="material-icons-round animate-spin">sync</span>
-              SINCRONIZZAZIONE...
+              INVIO...
             </>
           ) : (
             <>
               <span className="material-icons-round">cloud_upload</span>
-              CONFERMA E INVIA
+              INVIA RAPPORTO
             </>
           )}
-        </button>
-        <button 
-          onClick={() => onSaveDraft(report)}
-          className="w-full text-sm font-semibold text-slate-500 hover:text-white transition-colors py-2 text-center"
-        >
-          Salva come bozza locale
         </button>
       </footer>
     </div>

@@ -19,22 +19,26 @@ const Login: React.FC<Props> = ({ onLogin }) => {
     setIsLoading(true);
     setError('');
 
-    const result = await geminiService.verifyLogin(username, password);
+    try {
+      const result = await geminiService.verifyLogin(username, password);
 
-    if (result.success) {
-      onLogin({ 
-        name: result.username || username, 
-        prefix: result.prefix || 'C' 
-      });
-    } else {
-      setError(result.message || 'Credenziali non valide');
+      if (result && result.success) {
+        onLogin({ 
+          name: result.username || username, 
+          prefix: result.prefix || 'C' 
+        });
+      } else {
+        setError(result?.message || 'Credenziali errate o server non risponde');
+        setIsLoading(false);
+      }
+    } catch (err) {
+      setError('Errore di connessione al database');
       setIsLoading(false);
     }
   };
 
   return (
     <div className="h-full flex flex-col items-center justify-center px-8 bg-background-dark relative overflow-hidden">
-      {/* Background decoration */}
       <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-primary/10 rounded-full blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none"></div>
 
@@ -45,7 +49,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
           </div>
           <div className="text-center">
             <h1 className="text-3xl font-black tracking-tighter text-white mb-1">SMIRT</h1>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em]">Management Portal</p>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em]">Portale Tecnico</p>
           </div>
         </div>
 
@@ -55,11 +59,10 @@ const Login: React.FC<Props> = ({ onLogin }) => {
               <span className="material-icons-round absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors text-lg">person</span>
               <input 
                 type="text"
-                placeholder="Nome Utente"
+                placeholder="Utente"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-                className="w-full bg-surface-dark border border-slate-800 rounded-xl py-4 pl-12 pr-4 text-white placeholder-slate-600 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                className="w-full bg-surface-dark border border-slate-800 rounded-xl py-4 pl-12 pr-4 text-white placeholder-slate-600 focus:border-primary outline-none transition-all"
               />
             </div>
             
@@ -70,40 +73,33 @@ const Login: React.FC<Props> = ({ onLogin }) => {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                className="w-full bg-surface-dark border border-slate-800 rounded-xl py-4 pl-12 pr-4 text-white placeholder-slate-600 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                className="w-full bg-surface-dark border border-slate-800 rounded-xl py-4 pl-12 pr-4 text-white placeholder-slate-600 focus:border-primary outline-none transition-all"
               />
             </div>
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
-              <span className="material-icons-round text-red-500 text-sm">warning</span>
-              <span className="text-[11px] text-red-400 font-bold">{error}</span>
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-3 animate-bounce">
+              <span className="material-icons-round text-red-500 text-sm">error</span>
+              <span className="text-[11px] text-red-400 font-bold uppercase">{error}</span>
             </div>
           )}
 
           <button 
             type="submit"
             disabled={isLoading}
-            className={`w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-xl shadow-neon transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${isLoading ? 'opacity-50' : ''}`}
+            className={`w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-xl shadow-neon transition-all flex items-center justify-center gap-3 ${isLoading ? 'opacity-50' : ''}`}
           >
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
             ) : (
               <>
-                <span>AUTENTICAZIONE</span>
-                <span className="material-icons-round text-lg">login</span>
+                <span>ACCEDI</span>
+                <span className="material-icons-round text-lg">arrow_forward</span>
               </>
             )}
           </button>
         </form>
-
-        <div className="text-center pt-4">
-          <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest leading-loose">
-            Software Gestionale Interventi<br />Accesso Riservato Personale Tecnico
-          </p>
-        </div>
       </div>
     </div>
   );

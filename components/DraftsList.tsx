@@ -1,24 +1,27 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { InterventionReport } from '../types';
-import { storageService } from '../services/storageService';
 
 interface Props {
+  reports: InterventionReport[];
   onEdit: (report: InterventionReport) => void;
 }
 
-const DraftsList: React.FC<Props> = ({ onEdit }) => {
+const DraftsList: React.FC<Props> = ({ reports, onEdit }) => {
   const [view, setView] = useState<'drafts' | 'history'>('drafts');
-  const [reports, setReports] = useState<InterventionReport[]>([]);
 
-  useEffect(() => {
-    const all = storageService.getReports();
+  const filteredReports = useMemo(() => {
     if (view === 'drafts') {
-      setReports(all.filter(r => r.status === 'draft').sort((a, b) => b.timestamp - a.timestamp));
+      return reports
+        .filter(r => r.status === 'draft')
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     } else {
-      setReports(all.filter(r => r.status === 'synced').sort((a, b) => b.timestamp - a.timestamp).slice(0, 10));
+      return reports
+        .filter(r => r.status === 'synced')
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+        .slice(0, 10);
     }
-  }, [view]);
+  }, [reports, view]);
 
   return (
     <div className="h-full flex flex-col bg-background-dark overflow-hidden">
@@ -47,7 +50,7 @@ const DraftsList: React.FC<Props> = ({ onEdit }) => {
 
       <main className="flex-1 overflow-y-auto px-6 pb-32 hide-scrollbar">
         <div className="space-y-4">
-          {reports.length === 0 ? (
+          {filteredReports.length === 0 ? (
             <div className="py-20 flex flex-col items-center text-slate-600">
               <span className="material-icons-round text-6xl mb-4">
                 {view === 'drafts' ? 'inventory_2' : 'history'}
@@ -55,7 +58,7 @@ const DraftsList: React.FC<Props> = ({ onEdit }) => {
               <p>{view === 'drafts' ? 'Nessuna bozza trovata.' : 'Nessuno storico presente.'}</p>
             </div>
           ) : (
-            reports.map((report) => (
+            filteredReports.map((report) => (
               <div 
                 key={report.id}
                 onClick={() => report.status === 'draft' && onEdit(report)}
@@ -113,5 +116,4 @@ const DraftsList: React.FC<Props> = ({ onEdit }) => {
   );
 };
 
-// Add default export
 export default DraftsList;

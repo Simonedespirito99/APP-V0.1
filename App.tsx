@@ -1,7 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AppRoute, InterventionReport, UserProfile } from './types';
 import { storageService } from './services/storageService';
+import { geminiService } from './services/geminiService';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import DraftsList from './components/DraftsList';
@@ -15,11 +16,53 @@ import BottomNav from './components/BottomNav';
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.LOGIN);
   const [currentUser, setCurrentUser] = useState<UserProfile>(storageService.getProfile());
+  const [reports, setReports] = useState<InterventionReport[]>([]);
   const [activeReport, setActiveReport] = useState<InterventionReport | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [remoteLastId, setRemoteLastId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
 
-  const handleLoginSuccess = (userData: { name: string; prefix: string }) => {
+  const syncUserData = async (username: string) => {
+    if (!username) return;
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      // 1. Stats
+      const stats = await geminiService.fetchUserStats(username);
+      if (stats) {
+        storageService.syncCounter(stats.lastNum);
+        setRemoteLastId(stats.lastId);
+      } else {
+        setSyncError("Script non aggiornato o azione negata. Crea una Nuova Distribuzione.");
+      }
+
+      // 2. History
+      const history = await geminiService.fetchUserHistory(username);
+      if (history && history.length > 0) {
+        storageService.importSyncedReports(history);
+      }
+    } catch (e) {
+      setSyncError("Errore critico di connessione.");
+    } finally {
+      setReports(storageService.getReports());
+      setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    const localReports = storageService.getReports();
+    setReports(localReports);
+    
+    if (currentUser.name) {
+      setIsAuthenticated(true);
+      setRoute(AppRoute.DASHBOARD);
+      syncUserData(currentUser.name);
+    }
+  }, []);
+
+  const handleLoginSuccess = async (userData: { name: string; prefix: string }) => {
     const updatedProfile = { 
       ...currentUser, 
       name: userData.name, 
@@ -29,10 +72,20 @@ const App: React.FC = () => {
     storageService.saveProfile(updatedProfile);
     setIsAuthenticated(true);
     setRoute(AppRoute.DASHBOARD);
+    await syncUserData(userData.name);
+  };
+
+  const refreshReports = useCallback(() => {
+    setReports(storageService.getReports());
+  }, []);
+
+  const handleManualRefresh = () => {
+    if (currentUser.name) {
+      syncUserData(currentUser.name);
+    }
   };
 
   const startNewReport = () => {
-    const reports = storageService.getReports();
     const draftCount = reports.filter(r => r.status === 'draft').length;
     const projectedId = storageService.getProjectedId(draftCount + 1);
 
@@ -62,12 +115,14 @@ const App: React.FC = () => {
 
   const handleSaveDraft = (report: InterventionReport) => {
     storageService.saveReport(report);
+    refreshReports();
     setActiveReport(null);
     setRoute(AppRoute.DRAFTS);
   };
 
   const handleFinalSync = (report: InterventionReport) => {
-    storageService.finalizeReport(report.id);
+    storageService.finalizeReport(report);
+    refreshReports();
     setActiveReport(null);
     setRoute(AppRoute.DRAFTS);
   };
@@ -77,9 +132,18 @@ const App: React.FC = () => {
       case AppRoute.LOGIN:
         return <Login onLogin={handleLoginSuccess} />;
       case AppRoute.DASHBOARD:
-        return <Dashboard user={currentUser} onNewReport={startNewReport} />;
+        return <Dashboard 
+          user={currentUser} 
+          reports={reports}
+          onNewReport={startNewReport} 
+          isSyncing={isSyncing} 
+          remoteLastId={remoteLastId}
+          onRefresh={handleManualRefresh}
+          syncError={syncError}
+        />;
       case AppRoute.DRAFTS:
         return <DraftsList 
+          reports={reports}
           onEdit={(report) => {
             setActiveReport(report);
             setRoute(AppRoute.NEW_REPORT);
@@ -133,17 +197,20 @@ const App: React.FC = () => {
             storageService.saveProfile(u);
           }}
           onLogout={() => {
+            storageService.logout();
             setIsAuthenticated(false);
+            setReports([]);
+            setRemoteLastId(null);
             setRoute(AppRoute.LOGIN);
           }}
         />;
       default:
-        return <Dashboard user={currentUser} onNewReport={startNewReport} />;
+        return <Dashboard user={currentUser} reports={reports} onNewReport={startNewReport} />;
     }
   };
 
   return (
-    <div className="h-screen w-full flex flex-col bg-background-dark text-white max-w-md mx-auto relative overflow-hidden shadow-2xl">
+    <div className="h-[100dvh] w-full flex flex-col bg-background-dark text-white max-w-md mx-auto relative overflow-hidden shadow-2xl">
       <div className="flex-1 overflow-hidden relative">
         {renderScreen()}
       </div>

@@ -16,8 +16,9 @@ export const storageService = {
     const currentYear = new Date().getFullYear();
     const storedYear = localStorage.getItem(YEAR_KEY);
     
-    // Se l'anno memorizzato è inferiore all'anno corrente, resetta il contatore
     if (storedYear && parseInt(storedYear) < currentYear) {
+      localStorage.setItem(YEAR_KEY, currentYear.toString());
+      localStorage.setItem(COUNTER_KEY, '0');
       return 0;
     }
     
@@ -25,11 +26,44 @@ export const storageService = {
     return current ? parseInt(current) : 0;
   },
 
+  syncCounter: (remoteLastNum: number) => {
+    const localLastNum = storageService.getLastSentNumber();
+    if (remoteLastNum > localLastNum || (localLastNum === 0 && remoteLastNum > 0)) {
+      console.log("Sync: Aggiorno contatore locale a", remoteLastNum);
+      localStorage.setItem(COUNTER_KEY, remoteLastNum.toString());
+      localStorage.setItem(YEAR_KEY, new Date().getFullYear().toString());
+    }
+  },
+
+  importSyncedReports: (externalReports: any[]) => {
+    const localReports = storageService.getReports();
+    const existingIds = new Set(localReports.map(r => r.id));
+    
+    const newReports = externalReports
+      .filter(r => r && r.id && !existingIds.has(r.id))
+      .map(r => ({
+        materials: [],
+        selectedUnits: [],
+        selectedTasks: [],
+        assistantTechnicians: [],
+        description: "",
+        ...r,
+        status: 'synced' as const,
+        timestamp: r.timestamp || Date.now()
+      })) as InterventionReport[];
+
+    if (newReports.length > 0) {
+      console.log("Sync: Importati", newReports.length, "nuovi rapporti dal cloud");
+      const merged = [...localReports, ...newReports].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      localStorage.setItem(REPORTS_KEY, JSON.stringify(merged));
+    }
+  },
+
   getProjectedId: (offset: number = 1): string => {
     const profile = storageService.getProfile();
     const lastNum = storageService.getLastSentNumber();
     const nextNum = lastNum + offset;
-    return `${profile.prefix}-${nextNum.toString().padStart(4, '0')}`;
+    return `${profile.prefix || 'T'}-${nextNum.toString().padStart(4, '0')}`;
   },
 
   realignDraftIds: () => {
@@ -37,46 +71,42 @@ export const storageService = {
     const profile = storageService.getProfile();
     const lastNum = storageService.getLastSentNumber();
     
+    const synced = reports.filter(r => r.status === 'synced');
     const drafts = reports
       .filter(r => r.status === 'draft')
-      .sort((a, b) => a.timestamp - b.timestamp);
-    
-    const synced = reports.filter(r => r.status === 'synced');
+      .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
     
     const updatedDrafts = drafts.map((draft, index) => {
-      const newId = `${profile.prefix}-${(lastNum + index + 1).toString().padStart(4, '0')}`;
+      const newId = `${profile.prefix || 'T'}-${(lastNum + index + 1).toString().padStart(4, '0')}`;
       return { ...draft, id: newId };
     });
 
     localStorage.setItem(REPORTS_KEY, JSON.stringify([...synced, ...updatedDrafts]));
   },
 
-  finalizeReport: (tempId: string): string => {
+  finalizeReport: (report: InterventionReport): string => {
     const reports = storageService.getReports();
     const profile = storageService.getProfile();
-    const currentYear = new Date().getFullYear();
     const lastNum = storageService.getLastSentNumber();
     const newNum = lastNum + 1;
-    const finalId = `${profile.prefix}-${newNum.toString().padStart(4, '0')}`;
     
-    const updatedReports = reports.map(r => {
-      if (r.id === tempId) {
-        return { 
-          ...r, 
-          id: finalId, 
-          status: 'synced' as const, 
-          timestamp: Date.now() 
-        };
-      }
-      return r;
-    });
+    const finalId = `${profile.prefix || 'T'}-${newNum.toString().padStart(4, '0')}`;
+    
+    const finalReport: InterventionReport = {
+      ...report,
+      id: finalId,
+      status: 'synced',
+      timestamp: Date.now()
+    };
 
-    localStorage.setItem(YEAR_KEY, currentYear.toString());
+    const otherReports = reports.filter(r => r.id !== report.id);
+    const updatedReports = [...otherReports, finalReport];
+
+    localStorage.setItem(YEAR_KEY, new Date().getFullYear().toString());
     localStorage.setItem(COUNTER_KEY, newNum.toString());
     localStorage.setItem(REPORTS_KEY, JSON.stringify(updatedReports));
     
     storageService.realignDraftIds();
-    
     return finalId;
   },
 
@@ -94,14 +124,16 @@ export const storageService = {
 
   getProfile: (): UserProfile => {
     const data = localStorage.getItem(PROFILE_KEY);
-    return data ? JSON.parse(data) : {
-      name: 'Alex Mercer',
-      role: 'Senior Technician',
-      avatar: 'https://picsum.photos/seed/alex/200',
-      prefix: 'C',
+    if (data) return JSON.parse(data);
+    
+    return {
+      name: '',
+      role: 'Tecnico',
+      avatar: 'https://picsum.photos/seed/tech/200',
+      prefix: 'T',
       settings: {
         darkMode: true,
-        syncWifiOnly: true,
+        syncWifiOnly: false,
         notifications: true
       }
     };
@@ -110,5 +142,12 @@ export const storageService = {
   saveProfile: (profile: UserProfile) => {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     storageService.realignDraftIds();
+  },
+  
+  logout: () => {
+    localStorage.removeItem(PROFILE_KEY);
+    localStorage.removeItem(REPORTS_KEY);
+    localStorage.removeItem(COUNTER_KEY);
+    localStorage.removeItem(YEAR_KEY);
   }
 };
